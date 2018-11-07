@@ -429,13 +429,13 @@ class Gsitemap extends Module
     }
 
     /**
-     * Hydrate $link_sitemap with categories link
+     * Hydrate $link_sitemap with manufacturers link
      *
      * @param array $link_sitemap contain all the links for the Google sitemap file to be generated
      * @param string $lang language of link to add
      * @param int $index index of the current Google sitemap file
      * @param int $i count of elements added to sitemap main array
-     * @param int $id_category category object identifier
+     * @param int $id_manufacturer manufacturer object identifier
      *
      * @return bool
      */
@@ -466,6 +466,7 @@ class Gsitemap extends Module
                     Context::getContext()->shop->domain . Context::getContext()->shop->physical_uri . Context::getContext()->shop->virtual_uri,
                 ), $image_link) : $image_link;
             }
+            
             $file_headers = (Configuration::get('GSITEMAP_CHECK_IMAGE_FILE')) ? @get_headers($image_link) : true;
             $image_manufacturer = array();
             if (isset($image_link) && ($file_headers[0] != 'HTTP/1.1 404 Not Found' || $file_headers === true)) {
