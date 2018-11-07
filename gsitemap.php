@@ -55,6 +55,7 @@ class Gsitemap extends Module
             'meta',
             'product',
             'category',
+            'manufacturer',
             'cms',
             'module',
         );
@@ -84,6 +85,7 @@ class Gsitemap extends Module
             'GSITEMAP_PRIORITY_HOME' => 1.0,
             'GSITEMAP_PRIORITY_PRODUCT' => 0.9,
             'GSITEMAP_PRIORITY_CATEGORY' => 0.8,
+            'GSITEMAP_PRIORITY_MANUFACTURER' => 0.8,
             'GSITEMAP_PRIORITY_CMS' => 0.7,
             'GSITEMAP_FREQUENCY' => 'weekly',
             'GSITEMAP_CHECK_IMAGE_FILE' => false,
@@ -128,6 +130,7 @@ class Gsitemap extends Module
             'GSITEMAP_PRIORITY_HOME' => '',
             'GSITEMAP_PRIORITY_PRODUCT' => '',
             'GSITEMAP_PRIORITY_CATEGORY' => '',
+            'GSITEMAP_PRIORITY_MANUFACTURER' => '',
             'GSITEMAP_PRIORITY_CMS' => '',
             'GSITEMAP_FREQUENCY' => '',
             'GSITEMAP_CHECK_IMAGE_FILE' => '',
@@ -416,6 +419,70 @@ class Gsitemap extends Module
                 'link' => $url,
                 'image' => $image_product,
             ), $lang['iso_code'], $index, $i, $product_id['id_product'])) {
+                return false;
+            }
+
+            unset($image_link);
+        }
+
+        return true;
+    }
+
+    /**
+     * Hydrate $link_sitemap with categories link
+     *
+     * @param array $link_sitemap contain all the links for the Google sitemap file to be generated
+     * @param string $lang language of link to add
+     * @param int $index index of the current Google sitemap file
+     * @param int $i count of elements added to sitemap main array
+     * @param int $id_category category object identifier
+     *
+     * @return bool
+     */
+    
+    protected function getManufacturerLink(&$link_sitemap, $lang, &$index, &$i, $id_manufactuer = 0)
+    {
+        $link = new Link();
+        if (method_exists('ShopUrl', 'resetMainDomainCache')) {
+            ShopUrl::resetMainDomainCache();
+        }
+
+        $manufacturers_id = Db::getInstance()->executeS('SELECT m.id_manufacturer FROM `' . _DB_PREFIX_ . 'manufacturer` m
+                INNER JOIN `' . _DB_PREFIX_ . 'manufacturer_shop` ms ON m.`id_manufacturer` = ms.`id_manufacturer` AND ms.`id_shop` = '.(int)$this->context->shop->id.'
+                WHERE m.`id_manufacturer` >= ' . (int) $id_manufactuer . ' AND m.`active` = 1 
+                ORDER BY m.`id_manufacturer` ASC');
+
+        foreach ($manufacturers_id as $manufacturer_id) {
+            $manufacturer = new Manufacturer((int)$manufacturer_id['id_manufacturer'], (int) $lang['id_lang']);
+            $url = $link->getManufacturerLink($manufacturer, null, (int)$lang['id_lang']);
+
+            if ($image_link = $this->context->link->getManufacturerImageLink($manufacturer->id)) {
+                
+                $image_link = (!in_array(rtrim(Context::getContext()->shop->virtual_uri, '/'), explode('/', $image_link))) ? str_replace(array(
+                    'https',
+                    Context::getContext()->shop->domain . Context::getContext()->shop->physical_uri,
+                ), array(
+                    'http',
+                    Context::getContext()->shop->domain . Context::getContext()->shop->physical_uri . Context::getContext()->shop->virtual_uri,
+                ), $image_link) : $image_link;
+            }
+            $file_headers = (Configuration::get('GSITEMAP_CHECK_IMAGE_FILE')) ? @get_headers($image_link) : true;
+            $image_manufacturer = array();
+            if (isset($image_link) && ($file_headers[0] != 'HTTP/1.1 404 Not Found' || $file_headers === true)) {
+                $image_manufacturer = array(
+                    'title_img' => htmlspecialchars(strip_tags($manufacturer->name)),
+                    'caption' => Tools::substr(htmlspecialchars(strip_tags($manufacturer->description)), 0, 350),
+                    'link' => $image_link,
+                );
+            }
+
+            if (!$this->addLinkToSitemap($link_sitemap, array(
+                'type' => 'manufacturer',
+                'page' => 'manufacturer',
+                'lastmod' => $manufacturer->date_upd,
+                'link' => $url,
+                'image' => $image_manufacturer,
+            ), $lang['iso_code'], $index, $i, (int) $manufacturer_id['id_manufacturer'])) {
                 return false;
             }
 
